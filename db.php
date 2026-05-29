@@ -97,7 +97,7 @@ function delete_user(int $user_id): bool
         executeQuery('DELETE FROM comments WHERE user_id = :user_id', [':user_id' => $user_id]);
         executeQuery('DELETE FROM responses WHERE user_id = :user_id', [':user_id' => $user_id]);
         executeQuery('DELETE FROM surveys WHERE creator_id = :user_id', [':user_id' => $user_id]);
-        executeQuery('DELETE FROM users WHERE id = :user_id', [':user_id' => $user_id]);
+        executeQuery('DELETE FROM users WHERE user_id = :user_id', [':user_id' => $user_id]);
 
         $pdo->commit();
         return true;
@@ -134,7 +134,7 @@ function insert_survey(int $creator_id, string $title, array $spec, string $star
 
 function get_surveys_list(int $limit, int $offset): array
 {
-    $sql = 'SELECT id, creator_id, title, survey_spec, start_at, end_at, question_key, result_key, is_notified FROM surveys ORDER BY start_at ASC LIMIT :limit OFFSET :offset';
+    $sql = 'SELECT survey_id, creator_id, title, survey_spec, start_at, end_at, question_key, result_key, is_notified FROM surveys ORDER BY start_at ASC LIMIT :limit OFFSET :offset';
     $stmt = getPdo()->prepare($sql);
     $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
@@ -190,21 +190,21 @@ function update_survey(int $survey_id, array $data): bool
         return false;
     }
 
-    $sql = 'UPDATE surveys SET ' . implode(', ', $setClauses) . ' WHERE id = :survey_id';
+    $sql = 'UPDATE surveys SET ' . implode(', ', $setClauses) . ' WHERE survey_id = :survey_id';
     executeQuery($sql, $params);
     return true;
 }
 
 function update_notification_flag(int $survey_id): bool
 {
-    $sql = 'UPDATE surveys SET is_notified = true WHERE id = :survey_id';
+    $sql = 'UPDATE surveys SET is_notified = true WHERE survey_id = :survey_id';
     executeQuery($sql, [':survey_id' => $survey_id]);
     return true;
 }
 
 function get_responses_by_survey_id(int $survey_id): array
 {
-    $sql = 'SELECT id, survey_id, user_id, answer_data, created_at, updated_at FROM responses WHERE survey_id = :survey_id ORDER BY created_at ASC';
+    $sql = 'SELECT response_id, survey_id, user_id, answer_data, respondent_age, respondent_gender, answered_at FROM responses WHERE survey_id = :survey_id ORDER BY answered_at ASC';
     $stmt = executeQuery($sql, [':survey_id' => $survey_id]);
     $responses = $stmt->fetchAll();
 
@@ -221,14 +221,17 @@ function upsert_response(int $survey_id, ?int $user_id, array $answer_data): boo
     if ($payload === false) {
         throw new RuntimeException('Failed to encode answer data.');
     }
-
     if ($user_id === null) {
-        $sql = 'INSERT INTO responses (survey_id, user_id, answer_data, created_at, updated_at) VALUES (:survey_id, NULL, :answer_data, NOW(), NOW())';
+        $sql = 'INSERT INTO responses (survey_id, user_id, answer_data, answered_at) 
+                VALUES (:survey_id, NULL, :answer_data, NOW())';
         executeQuery($sql, [':survey_id' => $survey_id, ':answer_data' => $payload]);
         return true;
     }
-
-    $sql = 'INSERT INTO responses (survey_id, user_id, answer_data, created_at, updated_at) VALUES (:survey_id, :user_id, :answer_data, NOW(), NOW()) ON CONFLICT (survey_id, user_id) DO UPDATE SET answer_data = EXCLUDED.answer_data, updated_at = NOW()';
+    $sql = 'INSERT INTO responses (survey_id, user_id, answer_data, answered_at) 
+            VALUES (:survey_id, :user_id, :answer_data, NOW()) 
+            ON CONFLICT (survey_id, user_id) 
+            DO UPDATE SET answer_data = EXCLUDED.answer_data, answered_at = NOW()';
+    
     executeQuery($sql, [':survey_id' => $survey_id, ':user_id' => $user_id, ':answer_data' => $payload]);
     return true;
 }
@@ -245,25 +248,25 @@ function insert_comment(int $survey_id, int $user_id, string $content): bool
     return true;
 }
 
-function toggle_like(int $user_id, int $target_id, int $type): array
+function toggle_like(int $user_id, int $comment_id, int $like_type): array
 {
-    $sql = 'SELECT id FROM likes WHERE user_id = :user_id AND target_id = :target_id AND type = :type LIMIT 1';
-    $stmt = executeQuery($sql, [':user_id' => $user_id, ':target_id' => $target_id, ':type' => $type]);
+    $sql = 'SELECT like_id FROM likes WHERE user_id = :user_id AND comment_id = :comment_id AND like_type = :like_type LIMIT 1';
+    $stmt = executeQuery($sql, [':user_id' => $user_id, ':comment_id' => $comment_id, ':like_type' => $like_type]);
     $like = $stmt->fetch();
 
     if ($like !== false) {
-        executeQuery('DELETE FROM likes WHERE id = :id', [':id' => $like['id']]);
+        executeQuery('DELETE FROM likes WHERE like_id = :like_id', [':like_id' => $like['like_id']]);
         $liked = false;
     } else {
-        executeQuery('INSERT INTO likes (user_id, target_id, type, created_at) VALUES (:user_id, :target_id, :type, NOW())', [
+        executeQuery('INSERT INTO likes (user_id, comment_id, like_type, created_at) VALUES (:user_id, :comment_id, :like_type, NOW())', [
             ':user_id' => $user_id,
-            ':target_id' => $target_id,
-            ':type' => $type,
+            ':comment_id' => $comment_id,
+            ':like_type' => $like_type,
         ]);
         $liked = true;
     }
 
-    $countStmt = executeQuery('SELECT COUNT(*) AS total FROM likes WHERE target_id = :target_id AND type = :type', [':target_id' => $target_id, ':type' => $type]);
+    $countStmt = executeQuery('SELECT COUNT(*) AS total FROM likes WHERE comment_id = :comment_id AND like_type = :like_type', [':comment_id' => $comment_id, ':like_type' => $like_type]);
     $countRow = $countStmt->fetch();
     $like_count = isset($countRow['total']) ? (int)$countRow['total'] : 0;
 
