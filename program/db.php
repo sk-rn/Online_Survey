@@ -1,6 +1,18 @@
 <?php
+/**
+ * ------------------------------------------------------------------------
+ * データベース操作ヘルパー (db.php)
+ * ------------------------------------------------------------------------
+ * 役割：PostgreSQLとの接続管理および各種CRUD処理を担当する。
+ * 利用側：api.php や画面処理から呼び出される。
+ * ------------------------------------------------------------------------
+ */
+
 declare(strict_types=1);
 
+// ========================================
+// 1. DB接続設定
+// ========================================
 $dsn = getenv('DB_DSN') ?: 'pgsql:host=127.0.0.1;port=5432;dbname=mydb;options=--client_encoding=UTF8';  //修正必要
 $db_user = getenv('DB_USER') ?: 'postgres';
 $db_pass = getenv('DB_PASS') ?: '';
@@ -17,6 +29,13 @@ try {
     exit;
 }
 
+// ========================================
+// 2. エラー処理ユーティリティ
+// ========================================
+
+/**
+ * DB接続・SQL実行エラー時にエラーメッセージを表示する
+ */
 function renderDbErrorModal(PDOException $e): void
 {
     $message = '通信が切れました。もう一度お試しください。';
@@ -27,6 +46,13 @@ function renderDbErrorModal(PDOException $e): void
     echo '</body></html>';
 }
 
+// ========================================
+// 3. DB接続・クエリ実行ユーティリティ
+// ========================================
+
+/**
+ * 現在のPDO接続オブジェクトを取得する
+ */
 function getPdo(): PDO
 {
     global $pdo;
@@ -36,6 +62,9 @@ function getPdo(): PDO
     throw new RuntimeException('Database connection not available.');
 }
 
+/**
+ * SQL文を実行し、実行結果(PDOStatement)を返す
+ */
 function executeQuery(string $sql, array $params = []): PDOStatement
 {
     $pdo = getPdo();
@@ -50,6 +79,9 @@ function executeQuery(string $sql, array $params = []): PDOStatement
     }
 }
 
+/**
+ * JSON文字列を配列へ変換する
+ */
 function decodeJson(?string $json): array
 {
     if ($json === null || $json === '') {
@@ -60,6 +92,9 @@ function decodeJson(?string $json): array
     return is_array($result) ? $result : [];
 }
 
+/**
+ * UUID(v4)を生成する
+ */
 function generateUuid(): string
 {
     $data = random_bytes(16);
@@ -68,9 +103,16 @@ function generateUuid(): string
     return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
 }
 
+// ========================================
+// 4. ユーザー関連処理
+// ========================================
+
+/**
+ * ユーザーを新規登録する
+ */
 function insert_user(string $name, string $password_hash): bool
 {
-    $sql = 'INSERT INTO users (account_name, password_hash, created_at) VALUES (:name, :password_hash, NOW())';
+    $sql = 'INSERT INTO users (account_name, password_hash, created_at, updated_at) VALUES (:name, :password_hash, NOW(), NOW())';
     executeQuery($sql, [
         ':name' => $name,
         ':password_hash' => $password_hash,
@@ -79,6 +121,9 @@ function insert_user(string $name, string $password_hash): bool
     return true;
 }
 
+/**
+ * ユーザー名からユーザー情報を取得する
+ */
 function get_user_by_name(string $name): ?array
 {
     $sql = 'SELECT * FROM users WHERE account_name = :name LIMIT 1';
@@ -87,6 +132,9 @@ function get_user_by_name(string $name): ?array
     return $user === false ? null : $user;
 }
 
+/**
+ * ユーザーと関連データをまとめて削除する（トランザクション使用）
+ */
 function delete_user(int $user_id): bool
 {
     $pdo = getPdo();
@@ -108,6 +156,13 @@ function delete_user(int $user_id): bool
     }
 }
 
+// ========================================
+// 5. アンケート関連処理
+// ========================================
+
+/**
+ * アンケートを新規作成し、公開用キーを返す
+ */
 function insert_survey(int $creator_id, string $title, array $spec, string $start, string $end): string
 {
     $survey_spec = json_encode($spec, JSON_UNESCAPED_UNICODE);
@@ -118,7 +173,7 @@ function insert_survey(int $creator_id, string $title, array $spec, string $star
     $question_key = generateUuid();
     $result_key = generateUuid();
 
-    $sql = 'INSERT INTO surveys (creator_id, title, survey_spec, start_at, end_at, question_key, result_key, is_notified, created_at) VALUES (:creator_id, :title, :survey_spec, :start_at, :end_at, :question_key, :result_key, false, NOW())';
+    $sql = 'INSERT INTO surveys (creator_id, title, survey_spec, start_at, end_at, question_key, result_key, is_notified, created_at, updated_at) VALUES (:creator_id, :title, :survey_spec, :start_at, :end_at, :question_key, :result_key, false, NOW(), NOW())';
     executeQuery($sql, [
         ':creator_id' => $creator_id,
         ':title' => $title,
@@ -132,6 +187,9 @@ function insert_survey(int $creator_id, string $title, array $spec, string $star
     return $question_key;
 }
 
+/**
+ * アンケート一覧を取得する（ページネーション対応）
+ */
 function get_surveys_list(int $limit, int $offset): array
 {
     $sql = 'SELECT survey_id, creator_id, title, survey_spec, start_at, end_at, question_key, result_key, is_notified FROM surveys ORDER BY start_at ASC LIMIT :limit OFFSET :offset';
@@ -148,6 +206,9 @@ function get_surveys_list(int $limit, int $offset): array
     return $rows;
 }
 
+/**
+ * 公開キーまたは結果キーからアンケート情報を取得する
+ */
 function get_survey_by_key(string $key, string $type): ?array
 {
     $column = $type === 'result' ? 'result_key' : 'question_key';
@@ -163,6 +224,9 @@ function get_survey_by_key(string $key, string $type): ?array
     return $survey;
 }
 
+/**
+ * アンケート情報を更新する
+ */
 function update_survey(int $survey_id, array $data): bool
 {
     $allowed = ['title', 'survey_spec', 'start_at', 'end_at'];
@@ -190,11 +254,14 @@ function update_survey(int $survey_id, array $data): bool
         return false;
     }
 
-    $sql = 'UPDATE surveys SET ' . implode(', ', $setClauses) . ' WHERE survey_id = :survey_id';
+    $sql = 'UPDATE surveys SET ' . implode(', ', $setClauses) . ', updated_at = NOW() WHERE survey_id = :survey_id';
     executeQuery($sql, $params);
     return true;
 }
 
+/**
+ * 通知済みフラグをONにする
+ */
 function update_notification_flag(int $survey_id): bool
 {
     $sql = 'UPDATE surveys SET is_notified = true WHERE survey_id = :survey_id';
@@ -202,6 +269,13 @@ function update_notification_flag(int $survey_id): bool
     return true;
 }
 
+// ========================================
+// 6. 回答・レスポンス関連処理
+// ========================================
+
+/**
+ * 指定アンケートの回答一覧を取得する
+ */
 function get_responses_by_survey_id(int $survey_id): array
 {
     $sql = 'SELECT response_id, survey_id, user_id, answer_data, respondent_age, respondent_gender, answered_at FROM responses WHERE survey_id = :survey_id ORDER BY answered_at ASC';
@@ -215,6 +289,9 @@ function get_responses_by_survey_id(int $survey_id): array
     return $responses;
 }
 
+/**
+ * 回答を登録する（既存回答があれば更新）
+ */
 function upsert_response(int $survey_id, ?int $user_id, array $answer_data): bool
 {
     $payload = json_encode($answer_data, JSON_UNESCAPED_UNICODE);
@@ -236,6 +313,13 @@ function upsert_response(int $survey_id, ?int $user_id, array $answer_data): boo
     return true;
 }
 
+// ========================================
+// 7. コメント・いいね関連処理
+// ========================================
+
+/**
+ * コメントを登録する
+ */
 function insert_comment(int $survey_id, int $user_id, string $content): bool
 {
     $sql = 'INSERT INTO comments (survey_id, user_id, content, created_at) VALUES (:survey_id, :user_id, :content, NOW())';
@@ -248,6 +332,9 @@ function insert_comment(int $survey_id, int $user_id, string $content): bool
     return true;
 }
 
+/**
+ * いいねの追加・解除を切り替え、現在の件数を返す
+ */
 function toggle_like(int $user_id, int $comment_id, int $like_type): array
 {
     $sql = 'SELECT like_id FROM likes WHERE user_id = :user_id AND comment_id = :comment_id AND like_type = :like_type LIMIT 1';
@@ -271,4 +358,21 @@ function toggle_like(int $user_id, int $comment_id, int $like_type): array
     $like_count = isset($countRow['total']) ? (int)$countRow['total'] : 0;
 
     return ['liked' => $liked, 'like_count' => $like_count];
+}
+
+// ========================================
+// 7. コメント・いいね関連処理
+// ========================================
+
+/**
+ * データベースから禁止文字列（NGワード）の一覧を取得する
+ */
+
+function get_forbidden_words(): array
+{
+    $sql = 'SELECT word FROM forbidden_words';
+    
+    $stmt = executeQuery($sql);
+    
+    return $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
