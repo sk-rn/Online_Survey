@@ -269,6 +269,22 @@ function update_notification_flag(int $survey_id): bool
     return true;
 }
 
+/**
+ * 期限切れで未通知のアンケート一覧を取得する
+ */
+function get_expired_surveys_to_notify(int $user_id): array
+{
+    $sql = 'SELECT survey_id, title, end_at FROM surveys 
+            WHERE creator_id = :user_id 
+              AND is_notified = FALSE 
+              AND end_at < NOW()';
+
+    $params = [':user_id' => $user_id];
+    $stmt = executeQuery($sql, $params);
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 // ========================================
 // 6. 回答・レスポンス関連処理
 // ========================================
