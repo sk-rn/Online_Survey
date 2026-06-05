@@ -39,7 +39,7 @@ function checkWord(string $user_input, int $max_length = 50):bool{
         return true;//禁止文字なし
     } catch (Throwable $e){
         writeLog(__FILE__."::".__FUNCTION__, "ERROR", "予期しないエラー:".$e->getMessage());
-        return true;
+        return false;
     }
 }
 ?>
