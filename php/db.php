@@ -15,7 +15,12 @@ require_once __DIR__ . '/logger.php';
 // ========================================
 // 1. DB接続設定
 // ========================================
-$dsn = getenv('DB_DSN') ?: 'pgsql:host=172.18.10.28;port=5432;dbname=group1db;options=--client_encoding=UTF8';
+if (PHP_OS_FAMILY === 'Windows') {
+    $host = "localhost";
+}else{
+    $host = "172.18.10.28";
+}
+$dsn = getenv('DB_DSN') ?: 'pgsql:host='.$host.';port=5432;dbname=group1db;options=--client_encoding=UTF8';
 $db_user = getenv('DB_USER') ?: 'group1';
 $db_pass = getenv('DB_PASS') ?: 'Group1';
 $pdo = null;
