@@ -4,16 +4,19 @@
  * 認証・データベース連携および共通ヘッダー
  */
 
-// ファイルパスは __DIR__ を使用して安全に読み込み
+// 1. 外部ファイルの読み込み
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/db.php'; 
 
-// セッション開始（auth.phpで制御されていない場合）
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+// 2. セッション開始（auth.phpの関数を使用）
+start_sess();
 
-// --- 既読処理（header.php内で完結） ---
+// 3. CSRFトークンを生成
+$csrf_token = generate_csrf();
+
+// 4. 既読処理（header.php内で安全に完結）
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // ログイン済みか確認し、不正アクセスを防止
+    // ログイン済みか確認（auth.phpのセッションを利用）
     if (isset($_SESSION['user_id'])) {
         $json_input = file_get_contents('php://input');
         $input = json_decode($json_input, true);
@@ -30,13 +33,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// ユーザー情報とデータの準備
+// 5. ユーザー情報とデータの準備
 $user_id = $_SESSION['user_id'] ?? null;
 $notifications = $user_id ? get_expired_surveys_to_notify($user_id) : [];
 $surveys = get_all_survey_titles();
 ?>
 
 <header class="w-full bg-[#1e3a8a] text-white fixed top-0 left-0 h-16 z-[9999] shadow-lg">
+  <input type="hidden" id="csrf_token" value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
+
   <div class="max-w-6xl mx-auto h-full flex items-center justify-between px-6">
     <div class="flex items-center gap-4">
       <a href="index.php" class="text-2xl hover:text-blue-300 transition-colors"><i class="fa-solid fa-house"></i></a>
@@ -86,6 +91,7 @@ $surveys = get_all_survey_titles();
 <script>
 const surveyData = <?php echo json_encode($surveys); ?>;
 const notiIds = <?php echo json_encode(array_column($notifications, 'survey_id')); ?>;
+const csrfToken = document.getElementById('csrf_token').value;
 
 document.addEventListener('DOMContentLoaded', () => {
   const notiBtn = document.getElementById('notificationBtn');
@@ -108,7 +114,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if(notiIds.length > 0) {
           fetch('header.php', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 
+                  'Content-Type': 'application/json',
+                  'X-CSRF-Token': csrfToken // トークンをヘッダーに含める
+              },
               body: JSON.stringify({ action: 'mark_read', ids: notiIds })
           }).then(res => res.json()).then(data => {
               if(data.status === 'success' && notiCount) notiCount.classList.add('hidden');
@@ -119,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 検索機能等のUIイベントはそのまま維持
+  // 検索・UIイベント
   if(closeNotiBtn) {
     closeNotiBtn.addEventListener('click', (e) => {
       e.stopPropagation();
