@@ -3,7 +3,7 @@ require "db.php";
 require_once 'auth.php';
 //require_once 'header.php';
 require_once 'security.php';
-$q_key = $_GET['question_id'] ?? '';//テストデータ対応
+$q_key = $_GET['question_id'] ?? '';
 
 start_sess();
 $csrf_token = generate_csrf();
@@ -29,7 +29,6 @@ if(is_null($r)){
     echo("アンケートは削除されたか未公開です");
 }else{
     $json = $r["survey_spec"];
-    //以下，本実装
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
