@@ -27,7 +27,7 @@ $current_user_id = $is_logged_in ? (int)$_SESSION['user_id'] : null;
 
 // サインアウト処理のハンドリング
 if (isset($_GET['action']) && $_GET['action'] === 'signout') {
-    del_sess(); // 【修正箇所】session_del() から del_sess() へ変更
+    del_sess();
     header("Location: index.php");
     exit;
 }
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 // 並べ替えパラメータ検知（URLから受け取る元のパラメータ）
 $sort_type = isset($_GET['sort']) ? $_GET['sort'] : 'start';
 
-// 【新関数へのマッピング】 index.phpのパラメータを get_homepage_survey_list の $sortOrder 用に変換
+// index.phpのパラメータを get_homepage_survey_list の $sortOrder 用に変換
 $sort_order = '新着'; // 初期値（開始日時順）
 if ($sort_type === 'deadline') {
     $sort_order = '開始期限'; // 回答期限が近い順
@@ -170,108 +170,139 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ホームページ - 村上製作所 アンケートシステム</title>
     <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 0; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; padding-top: 90px; } 
+        body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; padding: 0; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; padding-top: 100px; } 
         
-        .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: bold; cursor: pointer; border: none; display: inline-block; }
+        /* ボタンベーススタイル */
+        .btn { padding: 10px 20px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .btn:active { transform: translateY(0); }
+        
+        /* カラーバリエーション */
         .btn-primary { background-color: #1e3a8a; color: white; }
         .btn-primary:hover { background-color: #1d4ed8; }
-        .btn-secondary { background-color: #e5e7eb; color: #4b5563; }
-        .btn-secondary:hover { background-color: #d1d5db; }
+        .btn-secondary { background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+        .btn-secondary:hover { background-color: #e2e8f0; color: #334155; }
         .btn-danger { background-color: #dc2626; color: white; }
-        .btn-withdraw { background-color: #e5e7eb; color: #dc2626; border: 1px solid #dc2626; }
-        .btn-card { padding: 6px 12px; font-size: 12px; border-radius: 4px; text-align: center; }
+        .btn-danger:hover { background-color: #b91c1c; }
+        .btn-withdraw { background-color: #ffffff; color: #dc2626; border: 1px solid #fca5a5; }
+        .btn-withdraw:hover { background-color: #fef2f2; border-color: #ef4444; }
+        
+        /* カード内専用小ボタン */
+        .btn-card { padding: 6px 12px; font-size: 12px; border-radius: 4px; font-weight: bold; flex: 1; text-align: center; }
 
-        .guide-section { background-color: #ffffff; padding: 20px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .guide-steps { display: flex; justify-content: space-between; gap: 15px; margin-top: 15px; }
-        .guide-step { flex: 1; text-align: center; background-color: #f8fafc; padding: 15px; border-radius: 6px; font-size: 13px; }
-        .guide-step-img { width: 40px; height: 40px; background-color: #cbd5e1; margin: 0 auto 10px auto; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        /* ガイドセクション */
+        .guide-section { background-color: #ffffff; padding: 24px; border-radius: 8px; margin-bottom: 32px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }
+        .guide-steps { display: flex; justify-content: space-between; gap: 16px; margin-top: 20px; flex-wrap: wrap; }
+        .guide-step { flex: 1; min-width: 180px; text-align: center; background-color: #f8fafc; padding: 20px 16px; border-radius: 6px; font-size: 13px; border: 1px solid #f1f5f9; }
+        .guide-step-img { width: 44px; height: 44px; background-color: #e2e8f0; margin: 0 auto 12px auto; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #1e3a8a; }
 
-        .auth-control-panel { background-color: #ffffff; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
-        .auth-buttons { display: flex; gap: 10px; }
+        /* コントロールパネル */
+        .auth-control-panel { background-color: #ffffff; padding: 20px 24px; border-radius: 8px; margin-bottom: 32px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+        .auth-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
 
-        .survey-section { margin-bottom: 35px; }
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; margin-bottom: 15px; position: relative; }
-        .section-header h3 { margin: 0; font-size: 18px; color: #1e293b; }
-        .scroll-container { display: flex; overflow-x: auto; overflow-y: hidden; white-space: nowrap; gap: 16px; padding-bottom: 12px; }
-        .card { flex: 0 0 280px; background-color: #ffffff; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between; }
-        .card-date { font-size: 12px; color: #64748b; margin-bottom: 6px; }
-        .card-title { font-size: 15px; font-weight: bold; color: #0f172a; margin: 0 0 8px 0; white-space: normal; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; height: 44px; line-height: 1.4; }
-        .card-creator { font-size: 12px; color: #64748b; margin-bottom: 12px; }
-        .card-actions { display: flex; gap: 6px; margin-top: auto; }
+        /* セクションヘッダー・並べ替え */
+        .survey-section { margin-bottom: 40px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; margin-bottom: 16px; position: relative; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
+        .section-header h3 { margin: 0; font-size: 18px; color: #1e3a8a; font-weight: 700; letter-spacing: 0.05em; }
+        
+        /* 横スクロールコンテナ */
+        .scroll-container { display: flex; overflow-x: auto; overflow-y: hidden; white-space: nowrap; gap: 20px; padding: 4px 4px 16px 4px; scrollbar-width: thin; }
+        
+        /* カードUI */
+        .card { flex: 0 0 290px; background-color: #ffffff; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; transition: transform 0.2s, box-shadow 0.2s; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.05); }
+        .card-date { font-size: 12px; color: #64748b; margin-bottom: 8px; font-weight: 500; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+        .card-title { font-size: 16px; font-weight: 700; color: #0f172a; margin: 0 0 12px 0; white-space: normal; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; height: 48px; line-height: 1.5; }
+        .card-creator { font-size: 12px; color: #64748b; margin-bottom: 16px; overflow: hidden; text-overflow: ellipsis; }
+        .card-actions { display: flex; gap: 8px; margin-top: auto; width: 100%; }
 
-        .pagination { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 15px; padding: 0; list-style: none; }
+        /* カードアクション個別カラー指定 */
+        .btn-extend { background-color: #e2e8f0; color: #1e293b; border: 1px solid #cbd5e1; }
+        .btn-extend:hover { background-color: #cbd5e1; }
+        .btn-result-view { background-color: #0284c7; color: white; }
+        .btn-result-view:hover { background-color: #0369a1; }
+        .btn-edit-view { background-color: #10b981; color: white; }
+        .btn-edit-view:hover { background-color: #059669; }
+
+        /* ページネーション */
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 24px; padding: 0; list-style: none; }
         .page-item { display: inline; }
-        .page-link { display: block; padding: 6px 12px; font-size: 13px; color: #4b5563; text-decoration: none; background-color: #fff; border: 1px solid #d1d5db; border-radius: 4px; transition: all 0.2s; }
-        .page-link:hover { background-color: #f3f4f6; color: #1f2937; }
+        .page-link { display: block; padding: 8px 14px; font-size: 13px; font-weight: 600; color: #4b5563; text-decoration: none; background-color: #fff; border: 1px solid #d1d5db; border-radius: 6px; transition: all 0.2s; }
+        .page-link:hover { background-color: #f3f4f6; color: #1f2937; border-color: #cbd5e1; }
         .page-item.active .page-link { background-color: #1e3a8a; color: white; border-color: #1e3a8a; font-weight: bold; }
 
+        /* 並べ替えポップアップ */
         .sort-container { position: relative; }
-        .sort-popup { position: absolute; top: 100%; right: 0; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 120; padding: 6px 0; margin-top: 4px; display: none; }
+        .sort-popup { position: absolute; top: 100%; right: 0; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); z-index: 120; padding: 6px 0; margin-top: 6px; display: none; }
         .sort-popup.show-popup { display: block; }
-        .sort-option { display: block; width: 150px; padding: 8px 16px; font-size: 13px; color: #334155; text-align: left; background: none; border: none; cursor: pointer; }
-        .sort-option:hover { background-color: #f1f5f9; }
+        .sort-option { display: block; width: 160px; padding: 10px 16px; font-size: 13px; color: #334155; text-align: left; background: none; border: none; cursor: pointer; font-weight: 500; }
+        .sort-option:hover { background-color: #f1f5f9; color: #1e3a8a; }
 
-        .withdraw-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 400; display: <?php echo (isset($_GET['view']) && $_GET['view'] === 'withdraw') ? 'flex' : 'none'; ?>; align-items: center; justify-content: center; }
-        .withdraw-popup { background-color: #ffffff; padding: 30px 40px; border-radius: 8px; width: 380px; max-width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center; }
-        .withdraw-message { font-size: 16px; font-weight: bold; color: #1e293b; margin-bottom: 24px; }
+        /* モーダル・ポップアップ表示 */
+        .withdraw-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.6); z-index: 400; display: <?php echo (isset($_GET['view']) && $_GET['view'] === 'withdraw') ? 'flex' : 'none'; ?>; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .withdraw-popup { background-color: #ffffff; padding: 32px; border-radius: 12px; width: 400px; max-width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); text-align: center; border: 1px solid #e2e8f0; }
+        .withdraw-message { font-size: 16px; font-weight: bold; color: #0f172a; margin-bottom: 24px; }
         .withdraw-buttons { display: flex; gap: 16px; justify-content: center; }
 
-        .page-top-pink-btn { position: fixed; bottom: 30px; right: 30px; background-color: #ff4a8d; color: white; border: none; width: 50px; height: 50px; border-radius: 50%; font-size: 20px; font-weight: bold; line-height: 0.9; cursor: pointer; box-shadow: 0 4px 12px rgba(255, 74, 141, 0.4); z-index: 150; transition: transform 0.2s ease; text-align: center; }
-        .page-top-pink-btn:hover { background-color: #ff2a75; transform: translateY(-3px); }
-        .member-section { background-color: #ffffff; padding: 25px; border-radius: 8px; margin-top: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .member-leader { font-weight: bold; font-size: 16px; color: #0f172a; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
-        .member-list { display: flex; flex-wrap: wrap; gap: 12px; color: #475569; font-size: 14px; }
-        footer { margin-top: 60px; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; background-color: #1e293b; }
-        footer a { color: #cbd5e1; text-decoration: none; margin: 0 10px; }
-        footer a:hover { text-decoration: underline; }
+        /* トップに戻るボタン */
+        .page-top-pink-btn { position: fixed; bottom: 32px; right: 32px; background-color: #ff4a8d; color: white; border: none; width: 48px; height: 48px; border-radius: 50%; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 14px rgba(255, 74, 141, 0.5); z-index: 150; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
+        .page-top-pink-btn:hover { background-color: #ff2a75; transform: translateY(-4px); box-shadow: 0 6px 20px rgba(255, 74, 141, 0.6); }
+        
+        /* メンバーセクション */
+        .member-section { background-color: #ffffff; padding: 24px; border-radius: 8px; margin-top: 48px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 32px; border: 1px solid #e2e8f0; }
+        .member-leader { font-weight: 700; font-size: 15px; color: #1e3a8a; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; letter-spacing: 0.05em; }
+        .member-list { font-size: 14px; color: #475569; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .member-list span { font-weight: 500; color: #334155; }
     </style>
 </head>
 <body>
+
+    <?php echo "<link rel='stylesheet' href='../css/footer.css'>"; ?>
 
     <?php include 'header.php'; ?>
 
     <div class="container">
         
-        <div id="liveAlertBar" style="display: none; background-color: #ecfdf5; border: 1px solid #10b981; color: #065f46; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; font-weight: bold;">
+        <div id="liveAlertBar" style="display: none; background-color: #ecfdf5; border: 1px solid #10b981; color: #065f46; padding: 14px 20px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; font-weight: bold; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);">
             ✓ <span id="liveAlertText">ここにメッセージが入ります</span>
         </div>
         
         <section class="guide-section">
-            <h2 style="margin-top: 0; font-size: 18px; color: #1e293b;">GUIDE ご利用方法</h2>
+            <h2 style="margin-top: 0; font-size: 18px; color: #1e3a8a; font-weight: 700;">GUIDE ご利用方法</h2>
             <div class="guide-steps">
                 <div class="guide-step">
                     <div class="guide-step-img">📋</div>
                     <strong>1. 調査要件の策定</strong>
-                    <div style="margin-top: 5px; font-size: 11px; color: #64748b; line-height: 1.5; white-space: normal; text-align: left;">
+                    <div style="margin-top: 8px; font-size: 11px; color: #64748b; line-height: 1.6; white-space: normal; text-align: left;">
                         アンケートの起案者は、事前に本システムへログインを完了した上で、調査目的の定義、設問数および選択肢の内部フォーマットの設計を厳密に行わなければなりません。収集すべきデータの属性を考慮し、対象ユーザーに不必要な負担を与えないよう、あらかじめ質問内容を精査・準備することが義務付けされています。
                     </div>
                 </div>
                 <div class="guide-step">
                     <div class="guide-step-img">📢</div>
                     <strong>2. 電磁的公示の実行</strong>
-                    <div style="margin-top: 5px; font-size: 11px; color: #64748b; line-height: 1.5; white-space: normal; text-align: left;">
+                    <div style="margin-top: 8px; font-size: 11px; color: #64748b; line-height: 1.6; white-space: normal; text-align: left;">
                         準備された調査要件に基づき、「アンケートフォーム作成」機能を使用してシステムへの登録処理を執り行います。タイトルや回答に要する想定所要時間を電算システムに入力し、確定操作を完了させた時点で、当システムを閲覧するすべての構成員に対して電磁的な公示および告知が自動的に執行されます。
                     </div>
                 </div>
                 <div class="guide-step">
                     <div class="guide-step-img">👥</div>
                     <strong>3. 回答権限の監視</strong>
-                    <div style="margin-top: 5px; font-size: 11px; color: #64748b; line-height: 1.5; white-space: normal; text-align: left;">
+                    <div style="margin-top: 8px; font-size: 11px; color: #64748b; line-height: 1.6; white-space: normal; text-align: left;">
                         公示されたアンケート案件は、システムによって設定された有効期限（end_at）に至るまで自動的にステータスが監視され、データ受付可能状態が維持されます。対象となる構成員は、それぞれの権限に基づいて該当レコードへアクセスし、付与された有効期限の枠内においてのみ電子的送信を行う権利を有します。
                     </div>
                 </div>
                 <div class="guide-step">
                     <div class="guide-step-img">💻</div>
                     <strong>4. 応答データの送信</strong>
-                    <div style="margin-top: 5px; font-size: 11px; color: #64748b; line-height: 1.5; white-space: normal; text-align: left;">
+                    <div style="margin-top: 8px; font-size: 11px; color: #64748b; line-height: 1.6; white-space: normal; text-align: left;">
                         各案件カードに配置された「回答する」リンクを押下すると、専用の応答データ入力フォームが展開されます。利用者は、展開されたフォームの所定記述欄に対し、客観的事実および自身の真実に基づいた適切なデータを遅滞なく入力した上で、送信シグナルをホストサーバーへ向けて実行してください。
                     </div>
                 </div>
                 <div class="guide-step">
                     <div class="guide-step-img">📊</div>
                     <strong>5. 統計情報の電算処理</strong>
-                    <div style="margin-top: 5px; font-size: 11px; color: #64748b; line-height: 1.5; white-space: normal; text-align: left;">
+                    <div style="margin-top: 8px; font-size: 11px; color: #64748b; line-height: 1.6; white-space: normal; text-align: left;">
                         データベースへ正常に格納され蓄積された応答レコードおよびデータログは、システム内部の集計モジュールによってリアルタイムに電算処理されます。処理された統計データは、「結果を見る」ボタンを経由することで、グラフおよび視覚的統計情報としていつでも安全に閲覧・検証を行うことが可能です。
                     </div>
                 </div>
@@ -281,9 +312,9 @@ try {
         <div class="auth-control-panel">
             <div>
                 <?php if ($is_logged_in): ?>
-                    <span>ログイン中: <strong><?php echo h($_SESSION['account_name'] ?? '会員ユーザー'); ?></strong> 様</span>
+                    <span style="font-size: 15px;">ログイン中: <strong style="color: #1e3a8a;"><?php echo h($_SESSION['account_name'] ?? '会員ユーザー'); ?></strong> 様</span>
                 <?php else: ?>
-                    <span>ゲストユーザー様 (ログインするとアンケート作成機能や回答履歴が解放されます)</span>
+                    <span style="font-size: 14px; color: #475569;">ゲストユーザー様 (ログインするとアンケート作成機能や回答履歴が解放されます)</span>
                 <?php endif; ?>
             </div>
             <div class="auth-buttons">
@@ -304,7 +335,7 @@ try {
                 <div class="section-header">
                     <h3>MY SURVEY 作成したアンケート</h3>
                     <div class="sort-container">
-                        <button class="btn btn-secondary sort-trigger-btn">並べ替え ▾</button>
+                        <button class="btn btn-secondary sort-trigger-btn" style="padding: 6px 14px; font-size: 13px;">並べ替え ▾</button>
                         <div class="sort-popup">
                             <button class="sort-option" data-sort-type="start">開始日時順</button>
                             <button class="sort-option" data-sort-type="deadline">回答期限が近い順</button>
@@ -320,21 +351,20 @@ try {
                             <div class="card" id="survey-card-<?php echo h($survey['survey_id']); ?>">
                                 <div>
                                     <div class="card-date">
-                                        <span class="live-date-text" id="date-box-<?php echo h($survey['survey_id']); ?>">
+                                        <span class="live-date-text" id="date-box-<?php echo h($survey['survey_id']); ?>" style="color: #0f172a; font-weight: 600;">
                                             <?php echo h(date('Y.m.d H:i', strtotime($survey['end_at']))); ?>
-                                        </span> まで (回答: <?php echo (int)($survey['response_count'] ?? 0); ?>件)
+                                        </span> まで <span style="color:#64748b; font-weight: normal;">(回答: <?php echo (int)($survey['response_count'] ?? 0); ?>件)</span>
                                     </div>
                                     <h4 class="card-title"><?php echo h($survey['title']); ?></h4>
                                 </div>
                                 <div class="card-actions">
-                                    <button type="button" class="btn btn-secondary btn-card js-extend-btn" 
-                                            style="background-color: #cbd5e1; color: #1e293b;"
+                                    <button type="button" class="btn btn-secondary btn-card js-extend-btn btn-extend" 
                                             data-survey-id="<?php echo h($survey['survey_id']); ?>"
                                             data-survey-title="<?php echo h($survey['title']); ?>">
                                         +10分延長
                                     </button>
                                     <a href="result.php?id=<?php echo h($survey['survey_id']); ?>" class="btn btn-primary btn-card">結果</a>
-                                    <a href="survey_form.php?id=<?php echo h($survey['survey_id']); ?>" class="btn btn-secondary btn-card">編集</a>
+                                    <a href="survey_form.php?id=<?php echo h($survey['survey_id']); ?>" class="btn btn-secondary btn-card btn-edit-view" style="border:none;">編集</a>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -346,7 +376,7 @@ try {
                 <div class="section-header">
                     <h3>MY SURVEY 回答したアンケート</h3>
                     <div class="sort-container">
-                        <button class="btn btn-secondary sort-trigger-btn">並べ替え ▾</button>
+                        <button class="btn btn-secondary sort-trigger-btn" style="padding: 6px 14px; font-size: 13px;">並べ替え ▾</button>
                         <div class="sort-popup">
                             <button class="sort-option" data-sort-type="start">開始日時順</button>
                             <button class="sort-option" data-sort-type="deadline">回答期限が近い順</button>
@@ -360,7 +390,7 @@ try {
                         <?php foreach ($answered_surveys as $survey): ?>
                             <div class="card">
                                 <div>
-                                    <div class="card-date"><?php echo h(date('Y.m.d H:i', strtotime($survey['end_at']))); ?> まで</div>
+                                    <div class="card-date" style="color: #0f172a; font-weight: 600;"><?php echo h(date('Y.m.d H:i', strtotime($survey['end_at']))); ?> まで</div>
                                     <h4 class="card-title"><?php echo h($survey['title']); ?></h4>
                                     <div class="card-creator">作成: <?php echo h($survey['creator_name'] ?? '不明'); ?></div>
                                 </div>
@@ -379,7 +409,7 @@ try {
             <div class="section-header">
                 <h3>SURVEY アンケート (回答受付中)</h3>
                 <div class="sort-container">
-                    <button class="btn btn-secondary sort-trigger-btn">並べ替え ▾</button>
+                    <button class="btn btn-secondary sort-trigger-btn" style="padding: 6px 14px; font-size: 13px;">並べ替え ▾</button>
                     <div class="sort-popup">
                         <button class="sort-option" data-sort-type="start">開始日時順</button>
                         <button class="sort-option" data-sort-type="deadline">回答期限が近い順</button>
@@ -399,11 +429,11 @@ try {
                         <div class="card">
                             <div>
                                 <div class="card-date">
-                                    <span id="public-date-box-<?php echo h($survey['survey_id']); ?>">
+                                    <span id="public-date-box-<?php echo h($survey['survey_id']); ?>" style="color: #0f172a; font-weight: 600;">
                                         <?php echo h(date('Y.m.d H:i', strtotime($survey['end_at']))); ?>
                                     </span> まで 
                                     <?php if ($required_time > 0): ?>
-                                        <span style="color:#dc2626; font-weight:bold; margin-left:5px;">時間: <?php echo $required_time; ?>分</span>
+                                        <span style="background-color:#fee2e2; color:#dc2626; font-weight:bold; padding: 2px 6px; border-radius: 4px; margin-left:6px; font-size:11px;">所要: <?php echo $required_time; ?>分</span>
                                     <?php endif; ?>
                                 </div>
                                 <h4 class="card-title"><?php echo h($survey['title']); ?></h4>
@@ -433,7 +463,7 @@ try {
             <div class="section-header">
                 <h3>Results 調査結果</h3>
                 <div class="sort-container">
-                    <button class="btn btn-secondary sort-trigger-btn">並べ替え ▾</button>
+                    <button class="btn btn-secondary sort-trigger-btn" style="padding: 6px 14px; font-size: 13px;">並べ替え ▾</button>
                     <div class="sort-popup">
                         <button class="sort-option" data-sort-type="start">開始日時順</button>
                         <button class="sort-option" data-sort-type="deadline">回答期限が近い順</button>
@@ -448,13 +478,13 @@ try {
                     <?php foreach ($result_surveys as $survey): ?>
                         <div class="card">
                             <div>
-                                <div class="card-date">期限終了: <?php echo h(date('Y.m.d H:i', strtotime($survey['end_at']))); ?></div>
+                                <div class="card-date" style="color: #64748b;">期限終了: <?php echo h(date('Y.m.d H:i', strtotime($survey['end_at']))); ?></div>
                                 <h4 class="card-title"><?php echo h($survey['title']); ?></h4>
                                 <div class="card-creator">作成: <?php echo h($survey['creator_name'] ?? '不明'); ?></div>
                             </div>
                             <div class="card-actions">
                                 <a href="question.php?id=<?php echo h($survey['survey_id']); ?>" class="btn btn-secondary btn-card" style="flex:1;">回答する</a>
-                                <a href="result.php?id=<?php echo h($survey['survey_id']); ?>" class="btn btn-primary btn-card" style="flex:1; background-color: #0284c7; color: white;">結果を見る</a>
+                                <a href="result.php?id=<?php echo h($survey['survey_id']); ?>" class="btn btn-primary btn-card btn-result-view" style="flex:1; border: none;">結果を見る</a>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -487,13 +517,13 @@ try {
             <p class="withdraw-message">本当に退会しますか？</p>
             <form action="index.php" method="POST" class="withdraw-buttons">
                 <input type="hidden" name="action" value="delete_account">
-                <a href="index.php" class="btn btn-withdraw-cancel">戻る</a>
-                <button type="submit" class="btn btn-withdraw-confirm">退会</button>
+                <a href="index.php" class="btn btn-secondary" style="flex: 1;">戻る</a>
+                <button type="submit" class="btn btn-danger" style="flex: 1; box-shadow: none;">退会</button>
             </form>
         </div>
     </div>
 
-    <button class="page-top-pink-btn">＾<br>＾</button>
+    <button class="page-top-pink-btn">▲<br><span style="font-size: 10px; font-weight: bold;">TOP</span></button>
 
     <footer>
         &copy; 2026 村上製作所 アンケート管理システム 
@@ -519,7 +549,7 @@ try {
                     // 連打した際に裏側で確実に処理するため、FetchAPIで自画面のAPIモードへ送信
                     fetch('index.php?api=extend&sort=<?php echo urlencode($sort_type); ?>', {
                         method: 'POST',
-                        headers: { 'Content-Type': application/json' },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ survey_id: surveyId })
                     })
                     .then(response => response.json())
@@ -587,5 +617,6 @@ try {
             }
         });
     </script>
+    <?php require_once "footer.php"; ?>
 </body>
 </html>
