@@ -21,7 +21,7 @@ if (function_exists('start_sess')) {
 </head>
 <body>
 <?php require_once 'header.php'; ?>
-<main class="max-w-4xl mx-auto p-6">
+<main class="max-w-4xl mx-auto p-6 page-privacy">
     <p class="text-sm text-gray-500">最終更新: 2026-06-22</p>
     <h1><strong>プライバシーポリシー</strong></h1>
 

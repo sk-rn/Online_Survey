@@ -5,7 +5,11 @@ body {
     line-height: 1.75;
     font-family: system-ui, -apple-system, "Noto Sans JP", "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
     padding-top: 4rem; /* 固定ヘッダ分の余白確保（h-16 相当） */
-    /* 背景色・文字色は既存のサイトスタイルに従う（上書きしない） */
+}
+
+/* ルート背景を index.php と合わせる */
+html, body {
+    background-color: #1e2d5a;
 }
 
 main {
@@ -30,6 +34,17 @@ main li {
 .section-gap {
     height: 1rem;
     display:block;
+}
+
+/* 個別ページの背景色（視認性向上） */
+.page-privacy,
+.page-terms {
+    /* index.php の青背景上に薄い白オーバーレイを入れて識別しやすくする */
+    background-color: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid rgba(255,255,255,0.06); /* わずかに目立つ境界 */
+    backdrop-filter: blur(2px); /* 背景を柔らかく見せる */
 }
 
 h1 {
