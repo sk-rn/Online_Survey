@@ -42,6 +42,8 @@ if (is_null($r)) {
 $json = $r['survey_spec'];
 
 echo "<title>" . h($r['title']) . "</title>";
+echo "<body>";
+include "header.php";
 echo "<main>";
 echo "<h1>回答内容の確認</h1>";
 echo "<p>" . h($r['survey_spec']['title'] ?? '') . "</p>";
