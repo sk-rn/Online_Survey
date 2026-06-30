@@ -48,14 +48,19 @@ async function postComment() {
         alert('セッション情報が見つかりません。ページを再読み込みしてください。');
         return;
     }
-    formData.append('csrf_token', token);
+    // CSRF はヘッダで送信（サーバ側はヘッダを優先して確認します）
 
     // 3. 通信実行
     try {
         const response = await fetch(API_ENDPOINT, {
             method: 'POST',
             body: formData,
-            headers: { 'X-CSRF-Token': token }
+            credentials: 'same-origin',
+            headers: {
+                'X-CSRF-Token': token,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
         });
 
         if (!response.ok) {
@@ -107,13 +112,18 @@ async function toggleLike(commentId) {
         console.warn('CSRF token missing; like aborted');
         return;
     }
-    formData.append('csrf_token', token);
+    // CSRF はヘッダで送信
 
     try {
         const response = await fetch(API_ENDPOINT, {
             method: 'POST',
             body: formData,
-            headers: { 'X-CSRF-Token': token }
+            credentials: 'same-origin',
+            headers: {
+                'X-CSRF-Token': token,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
         });
 
         if (!response.ok) {
@@ -173,13 +183,18 @@ async function autoSave(type) {
         console.debug('AutoSave: CSRF token not found; skipping silent save');
         return;
     }
-    formData.append('csrf_token', token);
+    // CSRF はヘッダで送信
 
     try {
         const response = await fetch(API_ENDPOINT, {
             method: 'POST',
             body: formData,
-            headers: { 'X-CSRF-Token': token }
+            credentials: 'same-origin',
+            headers: {
+                'X-CSRF-Token': token,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
         });
 
         if (!response.ok) {
