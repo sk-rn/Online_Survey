@@ -2,6 +2,7 @@
 require_once 'auth.php';
 require_once 'security.php';
 require_once 'db.php';
+require_once __DIR__ . '/error.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -19,23 +20,27 @@ $csrf_token = $_SESSION['csrf_token'];
 
 $error = ["username" => null, "password"=>null];
 if($_SERVER["REQUEST_METHOD"] == "POST"){
-    if(is_null(get_user_by_name($_POST["username"]))){
-        if(!checkWord($_POST["username"])){
-            $error["username"] = "入力できない文字が含まれています";
+    try {
+        if(is_null(get_user_by_name($_POST["username"]))){
+            if(!checkWord($_POST["username"])){
+                $error["username"] = "入力できない文字が含まれています";
+            }
+            if(!checkWord($_POST["password"])){
+                $error["password"] = "入力できない文字が含まれています";
+            }
+            if(is_null($error["username"]) and is_null($error["password"])){
+                //$_SESSION["csrf_token"] = $_POST["csrf_token"];
+                $_SESSION["username"] = $_POST["username"];
+                $_SESSION["password"] = $_POST["password"];
+                $_SESSION["agreed_terms"] = $_POST["agreed_terms"];
+                header("Location: ./signup_confirm.php");
+                exit;
+            }
+        }else{
+            $error["username"] = "そのユーザ名は既に存在しています";
         }
-        if(!checkWord($_POST["password"])){
-            $error["password"] = "入力できない文字が含まれています";
-        }
-        if(is_null($error["username"]) and is_null($error["password"])){
-            //$_SESSION["csrf_token"] = $_POST["csrf_token"];
-            $_SESSION["username"] = $_POST["username"];
-            $_SESSION["password"] = $_POST["password"];
-            $_SESSION["agreed_terms"] = $_POST["agreed_terms"];
-            header("Location: ./signup_confirm.php");
-            exit;
-        }
-    }else{
-        $error["username"] = "そのユーザ名は既に存在しています";
+    } catch (Throwable $e) {
+        renderError('新規登録処理中にエラーが発生しました。', 500, 'db', 'ERROR', $e, 'Signup Error');
     }
 }
 

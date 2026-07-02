@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/error.php';
+
 /*====================
 セッション開始関数
 ====================*/
@@ -112,10 +114,7 @@ function check_csrf($token){
         
         unset($_SESSION['csrf_token']);// トークンが不正な場合はセッションから削除して新しいトークンを生成する
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32)); // 新しいトークンを生成して保存する
-        require_once __DIR__ . '/../php/error.php';
-
         renderError('不正なリクエストです。もう一度お試しください。', 400, 'app', 'WARNING');
-        die();
     }
 
 }

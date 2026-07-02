@@ -11,6 +11,7 @@ require_once 'auth.php';
 require_once 'db.php';
 require_once 'security.php';
 require_once 'logger.php';
+require_once __DIR__ . '/error.php';
 
 // ----------------------------------------
 // 1. ログインチェック
@@ -52,9 +53,7 @@ if (isset($_GET['key']) && $_GET['key'] !== '') {
         $edit_mode = true;
         $spec = $survey['survey_spec'];
     } else {
-        writeLog('survey_form', 'WARNING', "不正アクセス: key={$survey_key}");
-        header('Location: index.php');
-        exit;
+        renderError('不正アクセスです。編集権限がありません。', 403, 'auth', 'WARNING');
     }
 }
 
@@ -67,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // CSRF
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        $errors[] = '不正なリクエストです（CSRF）。';
+        renderError('不正なリクエストです（CSRF）。', 403, 'app', 'WARNING');
     } else {
 
         // 入力値取得

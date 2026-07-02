@@ -3,6 +3,7 @@
 // 1. 関連モジュール（依存関係）の読み込み 
 // =========================================================================
 require_once __DIR__ . '/auth.php';     // セッション認証・ログインチェック用 
+require_once __DIR__ . '/error.php';    // 共通エラー表示用
 require_once __DIR__ . '/db.php';       // データベース操作・共通関数用（前田さんの共通関数）
 require_once __DIR__ . '/security.php'; // パラメータのサニタイズ・セキュリティ用 
 
@@ -15,13 +16,11 @@ login_check();
 
 // パラメータ名：survey_id(INT) と format(VARCHAR) のバリデーション
 if (!isset($_GET['survey_id']) || !filter_var($_GET['survey_id'], FILTER_VALIDATE_INT)) {
-    http_response_code(400); // 400 Bad Request 
-    exit("400 Bad Request: 不正なアンケートIDです。");
+    renderError('400 Bad Request: 不正なアンケートIDです。', 400, 'app', 'WARNING');
 }
 
 if (!isset($_GET['format']) || !in_array($_GET['format'], ['csv', 'pdf'], true)) {
-    http_response_code(400); // 400 Bad Request 
-    exit("400 Bad Request: 不正なフォーマット指定です。");
+    renderError('400 Bad Request: 不正なフォーマット指定です。', 400, 'app', 'WARNING');
 }
 
 $survey_id = (int)$_GET['survey_id'];
@@ -35,15 +34,13 @@ try {
     // db.phpで定義されている共通関数を呼び出し、回答データを取得
     $results = get_responses_by_survey_id($survey_id); 
 
-} catch (Exception $e) {
-    http_response_code(500);
-    exit("500 Internal Server Error: データ取得中にエラーが発生しました。");
+} catch (Throwable $e) {
+    renderError('500 Internal Server Error: データ取得中にエラーが発生しました。', 500, 'db', 'ERROR', $e);
 }
 
 // 該当データが1件も存在しない場合は 404 Not Found 
 if (empty($results)) {
-    http_response_code(404);
-    exit("404 Not Found: 該当する回答データが見つかりません。");
+    renderError('404 Not Found: 該当する回答データが見つかりません。', 404, 'app', 'WARNING');
 }
 
 // =========================================================================
@@ -143,3 +140,5 @@ if ($format === 'pdf') {
     $pdf->Output("survey_report_{$survey_id}.pdf", 'D'); 
     exit;
 }
+
+renderError('400 Bad Request: 不正なフォーマット指定です。', 400, 'app', 'WARNING');

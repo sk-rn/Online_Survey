@@ -1,6 +1,7 @@
 <?php
 require_once 'db.php';
 require_once 'security.php';
+require_once __DIR__ . '/error.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -11,15 +12,13 @@ $posted_token = $_POST['csrf_token'] ?? '';
 $session_token = $_SESSION['csrf_token'] ?? '';
 
 if (empty($posted_token) || $posted_token !== $session_token) {
-    http_response_code(403);
-    exit("403 Forbidden: 不正なリクエストです。");
+    renderError('403 Forbidden: 不正なリクエストです。', 403, 'app', 'WARNING');
 }
 
 // セッションから一時保存データの取得
 $input = $_SESSION['signup_input'] ?? null;
 if (!$input) {
-    header('Location: signup.php');
-    exit;
+    renderError('登録情報が見つかりません。最初からやり直してください。', 400, 'app', 'WARNING');
 }
 
 // データの取得
@@ -66,9 +65,8 @@ try {
     header("Location: index.php");
     exit;
     
-} catch (Exception $e) {
-    http_response_code(500);
-    exit("500 Internal Server Error: データベース登録中にエラーが発生しました。");
+} catch (Throwable $e) {
+    renderError('500 Internal Server Error: データベース登録中にエラーが発生しました。', 500, 'db', 'ERROR', $e, 'Signup Complete Error');
 }
 ?>
 <!-- <!DOCTYPE html>

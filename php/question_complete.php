@@ -24,8 +24,7 @@ if (empty($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $
 $q_key = $_GET['question_id'] ?? ($_POST['question_id'] ?? '');
 $survey = get_survey_by_key($q_key, 'question_key');
 if (!$survey) {
-    header('Location: index.php');
-    exit;
+    renderError('指定されたアンケートが見つかりません。', 404, 'app', 'WARNING', null, 'Survey Not Found');
 }
 $survey_id = $survey['survey_id'];
 
@@ -78,4 +77,4 @@ if ($success) {
     exit;
 }
 
-die('データの保存に失敗しました。');
+renderError('データの保存に失敗しました。', 500, 'db', 'ERROR');

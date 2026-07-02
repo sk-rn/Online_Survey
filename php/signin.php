@@ -1,6 +1,7 @@
 <?php
 require_once 'db.php';
 require_once 'auth.php';
+require_once __DIR__ . '/error.php';
 require_once 'security.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -23,39 +24,34 @@ $error_message = '';
 $username = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // CSRF検証
-    // $posted_token = $_POST['csrf_token'] ?? '';
-    // if ($posted_token !== $_SESSION['csrf_token']) {
-    //     http_response_code(403);
-    //     exit("403 Forbidden");
-    // }
+    $posted_token = $_POST['csrf_token'] ?? '';
+    if (empty($posted_token) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $posted_token)) {
+        renderError('403 Forbidden: 不正なリクエストです。', 403, 'app', 'WARNING');
+    }
 
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
 
     if ($username !== '' && $password !== '') {
-        // -----------------------------------------------------------------
-        // 【修正】共通関数 get_user_by_name() を利用してユーザー情報を取得
-        // -----------------------------------------------------------------
-        $user = get_user_by_name($username);
-        // 該当するユーザーが存在し、パスワードが一致するか検証
-        if ($user && password_verify($password, $user['password_hash'])) {
-            // セッション固定攻撃対策：ログイン成功時にセッションIDを再生成
-            session_regenerate_id(true);
+        try {
+            $user = get_user_by_name($username);
+            if ($user && password_verify($password, $user['password_hash'])) {
+                session_regenerate_id(true);
 
-            // セッションにユーザー情報を格納
-            $_SESSION['user_id'] = $user['user_id'];
-            $_SESSION['username'] = $user['account_name'];
-            $_SESSION['last_acc'] = time(); // タイムアウト判定用のタイムスタンプ
+                $_SESSION['user_id'] = $user['user_id'];
+                $_SESSION['username'] = $user['account_name'];
+                $_SESSION['last_acc'] = time();
 
-            // 事前に遷移元のURLが記録されていればそこへ、なければ管理画面等へリダイレクト
-            $redirect_url = $_SESSION['return_to'] ?? 'index.php';
-            unset($_SESSION['return_to']); // 使い終わったURLは削除
-            header("Location: " . $redirect_url);
-            exit;
-        } else {
+                $redirect_url = $_SESSION['return_to'] ?? 'index.php';
+                unset($_SESSION['return_to']);
+                header('Location: ' . $redirect_url);
+                exit;
+            }
+
             $error_message = 'ユーザー名またはパスワードが正しくありません。';
+        } catch (Throwable $e) {
+            renderError('ログイン処理中にエラーが発生しました。', 500, 'db', 'ERROR', $e, 'Signin Error');
         }
     } else {
         $error_message = 'ユーザー名とパスワードを入力してください。';

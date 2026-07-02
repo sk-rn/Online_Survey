@@ -1,9 +1,19 @@
 <?php
 require_once "db.php";
 require_once "auth.php";
+require_once __DIR__ . '/error.php';
 start_sess();
+
 function unsubscription(){
-    delete_user($_SESSION["user_id"]);
+    if (empty($_SESSION['user_id'])) {
+        renderError('ログインが必要です。', 403, 'auth', 'WARNING');
+    }
+
+    $deleted = delete_user((int)$_SESSION["user_id"]);
+    if ($deleted !== true) {
+        renderError('退会処理に失敗しました。', 500, 'db', 'ERROR');
+    }
+
     del_sess();
     header("Location: index.php");
     exit;
@@ -14,6 +24,8 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
         header("Location: index.php");
     }elseif(isset($_POST["unsubscripte"])){
         unsubscription();
+    } else {
+        renderError('不正なリクエストです。', 400, 'app', 'WARNING');
     }
 }
 ?>
