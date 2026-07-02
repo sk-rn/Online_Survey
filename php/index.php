@@ -933,7 +933,7 @@ try {
                                             <div class="survey-creator">作成: <?php echo h($survey['creator'] ?? '不明'); ?></div>
                                         </div>
                                         <div class="survey-actions">
-                                            <a href="question.php?id=<?php echo h($survey['survey_id']); ?>" class="action-inline-btn btn-answer">回答(<?php echo h($start_date_str); ?>~)</a>
+                                            <a href="question.php?id=<?php echo h($survey['question_key']); ?>" class="action-inline-btn btn-answer">回答(<?php echo h($start_date_str); ?>~)</a>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
