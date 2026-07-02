@@ -25,8 +25,8 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
             if(!checkWord($_POST["username"])){
                 $error["username"] = "入力できない文字が含まれています";
             }
-            if(!checkWord($_POST["password"])){
-                $error["password"] = "入力できない文字が含まれています";
+            if(trim($_POST["password"]) === '' || strlen($_POST["password"]) > 255){
+                $error["password"] = "パスワードは1〜255文字で入力してください";
             }
             if(is_null($error["username"]) and is_null($error["password"])){
                 //$_SESSION["csrf_token"] = $_POST["csrf_token"];

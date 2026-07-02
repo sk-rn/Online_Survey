@@ -6,14 +6,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 送信された csrf_token の整合性を検証
-$posted_token = $_POST['csrf_token'] ?? '';
-$session_token = $_SESSION['csrf_token'] ?? '';
-
-if (empty($posted_token) || $posted_token !== $session_token) {
-    renderError('403 Forbidden: 不正なリクエストです。', 403, 'app', 'WARNING');
-}
-
 // 入力データの受け取り
 $username = trim($_SESSION['username'] ?? '');
 $password = $_SESSION['password'] ?? '';
@@ -23,6 +15,8 @@ $agreed_terms = isset($_SESSION['agreed_terms']) ? true : false;
 if ($username === '' || $password === '' || !$agreed_terms) {
     renderError('登録情報が不足しています。最初からやり直してください。', 400, 'app', 'WARNING');
 }
+
+$session_token = $_SESSION['csrf_token'] ?? '';
 
 // 一時的にデータをセッション(signup_input)に保存
 $_SESSION['signup_input'] = [

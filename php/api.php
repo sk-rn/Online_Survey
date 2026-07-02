@@ -115,7 +115,7 @@ function isValidContent(?string $text): bool
     }
 
     // 最低限のサイズチェック（非常に長い入力は拒否）
-    if (mb_strlen($trimmed) > 2000) return false;
+    if ((function_exists('mb_strlen') ? mb_strlen($trimmed) : strlen($trimmed)) > 2000) return false;
 
     // DB に禁則語テーブルがあれば照合
     if (function_exists('get_forbidden_words')) {

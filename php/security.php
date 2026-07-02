@@ -8,28 +8,44 @@
 //
 //require "db.php";
 require_once "logger.php";
+
+function safe_strlen(string $value): int
+{
+    return function_exists('mb_strlen') ? mb_strlen($value) : strlen($value);
+}
+
+function safe_strpos(string $haystack, string $needle): int|false
+{
+    return function_exists('mb_strpos') ? mb_strpos($haystack, $needle) : strpos($haystack, $needle);
+}
+
 function checkWord(string $user_input, int $max_length = 50):bool{
     try{
         $normalize = [" ","　",".","．","。",",","，","、"];
         $target = $user_input;//$_POST["taxt"];
-        $target = Normalizer::normalize(
-            $target,
-            Normalizer::FORM_KC
-        );//入力の正規化
+        if (class_exists('Normalizer')) {
+            $normalized = Normalizer::normalize(
+                $target,
+                Normalizer::FORM_KC
+            );//入力の正規化
+            if ($normalized !== false) {
+                $target = $normalized;
+            }
+        }
 
         $target = preg_replace(
             '/[\x{200B}\x{200C}\x{200D}\x{2060}\x{FEFF}]/u',
             '',
             $target
         );//特殊文字の除去
-        if (($n = mb_strlen($target)) > (int)$max_length){
+        if (($n = safe_strlen($target)) > (int)$max_length){
             writeLog(__FILE__."::".__FUNCTION__, "WARNING", "文字列長超過:$n(制限:$max_length)");
             return false;
         }
         $target = str_replace($normalize,"",$target);
         $black_list = ["コーヒー","牛乳"];//get_forbidden_words();
         foreach($black_list as $word){
-            if(mb_strpos($target,$word) !== false){
+            if(safe_strpos($target,$word) !== false){
                 writeLog(__FILE__."::".__FUNCTION__, "WARNING", "不正な入力です:$user_input");
                 return false;
             }
