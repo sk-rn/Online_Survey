@@ -65,6 +65,7 @@ if(is_null($r)){
             $selected_gender = 'other';
         }
     }
+    if ($previous_response[''])
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -154,7 +155,7 @@ if(is_null($r)){
         }
         echo "</div>"; 
     }
-    $gender_value = $_POST['Q_gender'] ?? $autosave["Q_gender"];
+    $gender_value = $_POST['Q_gender'] ?? $autosave["Q_gender"] ?? $selected_gender;
     echo "<div class='question'>";
     echo "<h2>性別を選択してください</h2>";
     echo "<label class='option'>";
