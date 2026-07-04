@@ -117,6 +117,16 @@ function get_user_by_name(string $name): ?array
 }
 
 /**
+ * ユーザ情報を変更する
+ */
+
+function update_user(string $userid, string $newname, string $newhashedpass): bool{
+    $sql = "update users set account_name=:newname,password_hash=:newpass,updated_at=NOW() where user_id=:currentname";
+    $stmt = executeQuery($sql, [':newname'=>$newname,':newpass'=>$newhashedpass,':currentname'=>$userid]);
+    return $stmt->rowCount() > 0;
+}
+
+/**
  * ユーザーと関連データをまとめて削除する（トランザクション使用）
  */
 function delete_user(int $user_id): bool
